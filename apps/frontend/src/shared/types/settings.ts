@@ -246,6 +246,8 @@ export interface AppSettings {
   memoryAzureApiKey?: string;
   memoryAzureBaseUrl?: string;
   memoryAzureEmbeddingDeployment?: string;
+  // OpenRouter embedding settings
+  memoryOpenRouterEmbeddingModel?: string;
   // Onboarding wizard completion state
   onboardingCompleted?: boolean;
   // Selected agent profile for preset model/thinking configurations

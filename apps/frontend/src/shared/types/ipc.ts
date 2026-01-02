@@ -264,6 +264,12 @@ export interface ElectronAPI {
     claude: import('./cli').ToolDetectionResult;
   }>>;
 
+  // OpenRouter embedding models
+  getOpenRouterEmbeddingModels: (apiKey: string) => Promise<IPCResult<{
+    models: Array<{ id: string; name: string; description?: string; context_length?: number }>;
+    count: number;
+  }>>;
+
   // API Profile management (custom Anthropic-compatible endpoints)
   getAPIProfiles: () => Promise<IPCResult<ProfilesFile>>;
   saveAPIProfile: (profile: Omit<APIProfile, 'id' | 'createdAt' | 'updatedAt'>) => Promise<IPCResult<APIProfile>>;

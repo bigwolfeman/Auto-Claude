@@ -110,6 +110,19 @@ const browserMockAPI: ElectronAPI = {
   // Infrastructure & Docker Operations
   ...infrastructureMock,
 
+  // Default OpenRouter embedding models If endpoint doesn't return any models
+  getOpenRouterEmbeddingModels: async (apiKey: string) => ({
+    success: true,
+    data: {
+      models: [
+        { id: 'openai/text-embedding-3-small', name: 'OpenAI Text Embedding 3 Small', context_length: 8191 },
+        { id: 'openai/text-embedding-3-large', name: 'OpenAI Text Embedding 3 Large', context_length: 8191 },
+        { id: 'voyage/voyage-3', name: 'Voyage 3', context_length: 32000 },
+      ],
+      count: 3
+    }
+  }),
+
   // API Profile Management (custom Anthropic-compatible endpoints)
   getAPIProfiles: async () => ({
     success: true,

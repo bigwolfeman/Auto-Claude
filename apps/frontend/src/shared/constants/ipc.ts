@@ -395,6 +395,9 @@ export const IPC_CHANNELS = {
   OLLAMA_PULL_MODEL: 'ollama:pullModel',
   OLLAMA_PULL_PROGRESS: 'ollama:pullProgress',
 
+  // OpenRouter model fetching
+  OPENROUTER_LIST_EMBEDDING_MODELS: 'openrouter:listEmbeddingModels',
+
   // Auto Claude source updates
   AUTOBUILD_SOURCE_CHECK: 'autobuild:source:check',
   AUTOBUILD_SOURCE_DOWNLOAD: 'autobuild:source:download',

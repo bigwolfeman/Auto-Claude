@@ -306,8 +306,20 @@
     "reactiveDescription": "Basculer automatiquement quand une limite inattendue est atteinte",
     "apiKeys": "Clés API",
     "apiKeysInfo": "Les clés définies ici sont utilisées par défaut. Les projets individuels peuvent les remplacer dans leurs paramètres.",
+    "enableMemory": "Activer la mémoire Graphiti",
+    "enableMemoryDescription": "Activer la mémoire inter-sessions pour les agents avec Graphiti",
     "openaiKey": "Clé API OpenAI",
-    "openaiKeyDescription": "Requise pour le backend mémoire Graphiti (embeddings)"
+    "openaiKeyDescription": "Requise pour le backend mémoire Graphiti (embeddings)",
+    "embeddingProvider": "Fournisseur d'embeddings",
+    "embeddingProviderDescription": "Choisissez quelle API utiliser pour les embeddings de mémoire Graphiti",
+    "openrouterKey": "Clé API OpenRouter",
+    "openrouterKeyDescription": "Utilisez OpenRouter pour les embeddings (accès à plusieurs fournisseurs)",
+    "embeddingModel": "Modèle d'embedding",
+    "embeddingModelDescription": "Sélectionnez le modèle d'embedding à utiliser",
+    "selectModel": "Sélectionner un modèle...",
+    "fetchingModels": "Récupération des modèles...",
+    "noModelsFound": "Aucun modèle trouvé",
+    "enterApiKeyFirst": "Entrez la clé API pour charger les modèles"
   },
   "debug": {
     "title": "Debug & Logs",

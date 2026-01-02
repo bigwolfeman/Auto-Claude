@@ -8,6 +8,14 @@ import type {
   ToolDetectionResult
 } from '../../shared/types';
 
+// OpenRouter embedding model type
+export interface OpenRouterEmbeddingModel {
+  id: string;
+  name: string;
+  description?: string;
+  context_length?: number;
+}
+
 export interface SettingsAPI {
   // App Settings
   getSettings: () => Promise<IPCResult<AppSettings>>;
@@ -28,6 +36,9 @@ export interface SettingsAPI {
   getSourceEnv: () => Promise<IPCResult<SourceEnvConfig>>;
   updateSourceEnv: (config: { claudeOAuthToken?: string }) => Promise<IPCResult>;
   checkSourceToken: () => Promise<IPCResult<SourceEnvCheckResult>>;
+
+  // OpenRouter
+  getOpenRouterEmbeddingModels: (apiKey: string) => Promise<IPCResult<{ models: OpenRouterEmbeddingModel[]; count: number }>>;
 }
 
 export const createSettingsAPI = (): SettingsAPI => ({
@@ -59,5 +70,9 @@ export const createSettingsAPI = (): SettingsAPI => ({
     ipcRenderer.invoke(IPC_CHANNELS.AUTOBUILD_SOURCE_ENV_UPDATE, config),
 
   checkSourceToken: (): Promise<IPCResult<SourceEnvCheckResult>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.AUTOBUILD_SOURCE_ENV_CHECK_TOKEN)
+    ipcRenderer.invoke(IPC_CHANNELS.AUTOBUILD_SOURCE_ENV_CHECK_TOKEN),
+
+  // OpenRouter
+  getOpenRouterEmbeddingModels: (apiKey: string): Promise<IPCResult<{ models: OpenRouterEmbeddingModel[]; count: number }>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.OPENROUTER_LIST_EMBEDDING_MODELS, apiKey)
 });

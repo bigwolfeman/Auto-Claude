@@ -852,4 +852,90 @@ export function registerMemoryHandlers(): void {
       }
     }
   );
+
+  // ============================================
+  // OpenRouter Model Fetching
+  // ============================================
+
+  /**
+   * OpenRouter Embedding Model Information
+   * Returned from OpenRouter API /api/v1/embeddings/models
+   */
+  interface OpenRouterEmbeddingModel {
+    id: string;              // Model identifier (e.g., 'openai/text-embedding-3-small')
+    name: string;            // Display name
+    description?: string;    // Model description
+    context_length?: number; // Max tokens
+    pricing?: {
+      prompt: string;        // Price per token (e.g., '0.00002')
+      completion: string;
+    };
+  }
+
+  /**
+   * Fetch available embedding models from OpenRouter API.
+   * Calls GET https://openrouter.ai/api/v1/embeddings/models
+   *
+   * @async
+   * @param {string} apiKey - OpenRouter API key for authentication
+   * @returns {Promise<IPCResult<{ models: OpenRouterEmbeddingModel[], count: number }>>}
+   */
+  ipcMain.handle(
+    IPC_CHANNELS.OPENROUTER_LIST_EMBEDDING_MODELS,
+    async (_, apiKey: string): Promise<IPCResult<{ models: OpenRouterEmbeddingModel[]; count: number }>> => {
+      try {
+        if (!apiKey || !apiKey.trim()) {
+          return {
+            success: false,
+            error: 'API key is required to fetch OpenRouter models',
+          };
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/embeddings/models', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey.trim()}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return {
+              success: false,
+              error: 'Invalid API key. Please check your OpenRouter API key.',
+            };
+          }
+          return {
+            success: false,
+            error: `OpenRouter API error: ${response.status} ${response.statusText}`,
+          };
+        }
+
+        const data = await response.json();
+
+        // OpenRouter returns { data: [...models] }
+        const models: OpenRouterEmbeddingModel[] = (data.data || []).map((model: Record<string, unknown>) => ({
+          id: model.id as string,
+          name: model.name as string || model.id as string,
+          description: model.description as string,
+          context_length: model.context_length as number,
+          pricing: model.pricing as { prompt: string; completion: string },
+        }));
+
+        return {
+          success: true,
+          data: {
+            models,
+            count: models.length,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to fetch OpenRouter models',
+        };
+      }
+    }
+  );
 }

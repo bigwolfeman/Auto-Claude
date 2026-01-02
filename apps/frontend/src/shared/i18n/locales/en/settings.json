@@ -306,8 +306,20 @@
     "reactiveDescription": "Auto-swap when unexpected rate limit is hit",
     "apiKeys": "API Keys",
     "apiKeysInfo": "Keys set here are used as defaults. Individual projects can override these in their settings.",
+    "enableMemory": "Enable Graphiti Memory",
+    "enableMemoryDescription": "Enable cross-session memory for agents using Graphiti",
     "openaiKey": "OpenAI API Key",
-    "openaiKeyDescription": "Required for Graphiti memory backend (embeddings)"
+    "openaiKeyDescription": "Required for Graphiti memory backend (embeddings)",
+    "embeddingProvider": "Embeddings Provider",
+    "embeddingProviderDescription": "Choose which API to use for Graphiti memory embeddings",
+    "openrouterKey": "OpenRouter API Key",
+    "openrouterKeyDescription": "Use OpenRouter for embeddings (provides access to multiple providers)",
+    "embeddingModel": "Embedding Model",
+    "embeddingModelDescription": "Select which embedding model to use",
+    "selectModel": "Select model...",
+    "fetchingModels": "Fetching models...",
+    "noModelsFound": "No models found",
+    "enterApiKeyFirst": "Enter API key to load models"
   },
   "debug": {
     "title": "Debug & Logs",

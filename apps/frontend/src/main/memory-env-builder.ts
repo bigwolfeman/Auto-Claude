@@ -76,6 +76,9 @@ export function buildMemoryEnvVars(settings: AppSettings): Record<string, string
       if (settings.globalOpenRouterApiKey) {
         env.OPENROUTER_API_KEY = settings.globalOpenRouterApiKey;
       }
+      if (settings.memoryOpenRouterEmbeddingModel) {
+        env.OPENROUTER_EMBEDDING_MODEL = settings.memoryOpenRouterEmbeddingModel;
+      }
       break;
   }
 

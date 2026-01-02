@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Key,
@@ -24,10 +24,11 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '../../lib/utils';
 import { SettingsSection } from './SettingsSection';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../stores/claude-profile-store';
-import type { AppSettings, ClaudeProfile, ClaudeAutoSwitchSettings } from '../../../shared/types';
+import type { AppSettings, ClaudeProfile, ClaudeAutoSwitchSettings, GraphitiEmbeddingProvider } from '../../../shared/types';
 
 interface IntegrationSettingsProps {
   settings: AppSettings;
@@ -43,6 +44,18 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   const { t: tCommon } = useTranslation('common');
   // Password visibility toggle for global API keys
   const [showGlobalOpenAIKey, setShowGlobalOpenAIKey] = useState(false);
+  const [showGlobalOpenRouterKey, setShowGlobalOpenRouterKey] = useState(false);
+
+  // OpenRouter embedding models state
+  interface OpenRouterModel {
+    id: string;
+    name: string;
+    description?: string;
+    context_length?: number;
+  }
+  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
 
   // Claude Accounts state
   const [claudeProfiles, setClaudeProfiles] = useState<ClaudeProfile[]>([]);
@@ -273,6 +286,45 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       setIsLoadingAutoSwitch(false);
     }
   };
+
+  // Fetch OpenRouter embedding models
+  const fetchOpenRouterModels = useCallback(async (apiKey: string) => {
+    if (!apiKey || apiKey.trim().length < 10) {
+      setOpenRouterModels([]);
+      setModelsError(null);
+      return;
+    }
+
+    setIsLoadingModels(true);
+    setModelsError(null);
+
+    try {
+      const result = await window.electronAPI.getOpenRouterEmbeddingModels(apiKey);
+
+      if (result.success && result.data) {
+        setOpenRouterModels(result.data.models);
+      } else {
+        setModelsError(result.error || 'Failed to fetch models');
+        setOpenRouterModels([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch OpenRouter models:', err);
+      setModelsError(err instanceof Error ? err.message : 'Failed to fetch models');
+      setOpenRouterModels([]);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  }, []);
+
+  // Fetch models when OpenRouter is selected and key changes
+  useEffect(() => {
+    if (
+      settings.memoryEmbeddingProvider === 'openrouter' &&
+      settings.globalOpenRouterApiKey
+    ) {
+      fetchOpenRouterModels(settings.globalOpenRouterApiKey);
+    }
+  }, [settings.memoryEmbeddingProvider, settings.globalOpenRouterApiKey, fetchOpenRouterModels]);
 
   // Update auto-swap settings
   const handleUpdateAutoSwitch = async (updates: Partial<ClaudeAutoSwitchSettings>) => {
@@ -750,33 +802,162 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="globalOpenAIKey" className="text-sm font-medium text-foreground">
-                {t('integrations.openaiKey')}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {t('integrations.openaiKeyDescription')}
-              </p>
-              <div className="relative max-w-lg">
-                <Input
-                  id="globalOpenAIKey"
-                  type={showGlobalOpenAIKey ? 'text' : 'password'}
-                  placeholder="sk-..."
-                  value={settings.globalOpenAIApiKey || ''}
-                  onChange={(e) =>
-                    onSettingsChange({ ...settings, globalOpenAIApiKey: e.target.value || undefined })
-                  }
-                  className="pr-10 font-mono text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowGlobalOpenAIKey(!showGlobalOpenAIKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showGlobalOpenAIKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+            {/* Enable Graphiti Memory Toggle */}
+            <div className="flex items-center justify-between max-w-lg">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium text-foreground">
+                  {t('integrations.enableMemory')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('integrations.enableMemoryDescription')}
+                </p>
               </div>
+              <Switch
+                checked={settings.memoryEnabled ?? false}
+                onCheckedChange={(checked) =>
+                  onSettingsChange({ ...settings, memoryEnabled: checked })
+                }
+              />
             </div>
+
+            {/* Embedding Provider Selection (only show when memory is enabled) */}
+            {settings.memoryEnabled && (
+              <div className="space-y-2">
+                <Label htmlFor="embeddingProvider" className="text-sm font-medium text-foreground">
+                  {t('integrations.embeddingProvider')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('integrations.embeddingProviderDescription')}
+                </p>
+                <Select
+                  value={settings.memoryEmbeddingProvider || 'openai'}
+                  onValueChange={(value: GraphitiEmbeddingProvider) =>
+                    onSettingsChange({ ...settings, memoryEmbeddingProvider: value })
+                  }
+                >
+                  <SelectTrigger className="max-w-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="openrouter">OpenRouter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* OpenAI API Key (shown when memory enabled and OpenAI is selected) */}
+            {settings.memoryEnabled && (!settings.memoryEmbeddingProvider || settings.memoryEmbeddingProvider === 'openai') && (
+              <div className="space-y-2">
+                <Label htmlFor="globalOpenAIKey" className="text-sm font-medium text-foreground">
+                  {t('integrations.openaiKey')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('integrations.openaiKeyDescription')}
+                </p>
+                <div className="relative max-w-lg">
+                  <Input
+                    id="globalOpenAIKey"
+                    type={showGlobalOpenAIKey ? 'text' : 'password'}
+                    placeholder="sk-..."
+                    value={settings.globalOpenAIApiKey || ''}
+                    onChange={(e) =>
+                      onSettingsChange({ ...settings, globalOpenAIApiKey: e.target.value || undefined })
+                    }
+                    className="pr-10 font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGlobalOpenAIKey(!showGlobalOpenAIKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showGlobalOpenAIKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OpenRouter API Key (shown when memory enabled and OpenRouter is selected) */}
+            {settings.memoryEnabled && settings.memoryEmbeddingProvider === 'openrouter' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="globalOpenRouterKey" className="text-sm font-medium text-foreground">
+                    {t('integrations.openrouterKey')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.openrouterKeyDescription')}
+                  </p>
+                  <div className="relative max-w-lg">
+                    <Input
+                      id="globalOpenRouterKey"
+                      type={showGlobalOpenRouterKey ? 'text' : 'password'}
+                      placeholder="sk-or-..."
+                      value={settings.globalOpenRouterApiKey || ''}
+                      onChange={(e) =>
+                        onSettingsChange({ ...settings, globalOpenRouterApiKey: e.target.value || undefined })
+                      }
+                      className="pr-10 font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGlobalOpenRouterKey(!showGlobalOpenRouterKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showGlobalOpenRouterKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* OpenRouter Embedding Model Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="openrouterModel" className="text-sm font-medium text-foreground">
+                    {t('integrations.embeddingModel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.embeddingModelDescription')}
+                  </p>
+                  {!settings.globalOpenRouterApiKey ? (
+                    <p className="text-xs text-muted-foreground italic max-w-lg">
+                      {t('integrations.enterApiKeyFirst')}
+                    </p>
+                  ) : isLoadingModels ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground max-w-lg">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('integrations.fetchingModels')}
+                    </div>
+                  ) : modelsError ? (
+                    <div className="flex items-center gap-2 text-xs text-destructive max-w-lg">
+                      <AlertCircle className="h-4 w-4" />
+                      {modelsError}
+                    </div>
+                  ) : (
+                    <Select
+                      value={settings.memoryOpenRouterEmbeddingModel || ''}
+                      onValueChange={(value) =>
+                        onSettingsChange({ ...settings, memoryOpenRouterEmbeddingModel: value })
+                      }
+                    >
+                      <SelectTrigger className="max-w-lg">
+                        <SelectValue placeholder={t('integrations.selectModel')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {openRouterModels.length === 0 ? (
+                          <SelectItem value="" disabled>
+                            {t('integrations.noModelsFound')}
+                          </SelectItem>
+                        ) : (
+                          openRouterModels.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.name || model.id}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
